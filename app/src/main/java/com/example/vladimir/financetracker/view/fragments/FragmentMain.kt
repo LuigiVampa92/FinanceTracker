@@ -33,6 +33,11 @@ class FragmentMain : Fragment() {
         initComponentsListeners()
     }
 
+    override fun onResume() {
+        super.onResume()
+        hideSoftKeyboard()
+    }
+
     private fun observeViewModel(viewModel: FinanceTrackerViewModel) {
 
         viewModel.observableTransactions.observe(viewLifecycleOwner, Observer {
@@ -41,18 +46,22 @@ class FragmentMain : Fragment() {
 
         viewModel.observableWallet.observe(viewLifecycleOwner, Observer {
             if (it != null) {
-                fragment_main_balance.text = "${it?.balance.fmtMoney()} ${if (it?.currency == "USD") getString(R.string.usd) else getString(R.string.rub)}"
-                fragment_main_wallet.text = it?.name
+                fragment_main_balance.text = it.balance.fmtMoney()
+                fragment_main_balance.setTextColor(if (it.balance < 0) getColor(R.color.color_negative) else getColor(R.color.color_positive))
+                fragment_main_wallet.text = it.name
+                fragment_main_currency.text = if (it.currency == "USD") getString(R.string.usd) else getString(R.string.rub)
             }
             else {
-                fragment_main_balance.text = "Нет"
-                fragment_main_wallet.text = "Нет"
+                fragment_main_balance.text = getString(R.string.text_no)
             }
         })
     }
 
     private fun initComponents() {
-        mAdapter = AdapterTransactions()
+        mAdapter = AdapterTransactions {
+            mViewModel.setEditedTransaction(it)
+            goTo(context, Routes.EDIT_TRANSACTION_FRAGMENT)
+        }
         recycler_fragment_main.adapter = mAdapter
         observeViewModel(mViewModel)
         bottom_appbar.replaceMenu(R.menu.menu_main)
